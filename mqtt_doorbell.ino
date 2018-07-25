@@ -44,6 +44,7 @@ void setup_wifi() {
   // We start by connecting to a WiFi network
     Serial.print("Connecting to ");
     Serial.println(ssid);
+    WiFi.mode(WIFI_STA);  //station only, no accesspoint
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) 
     {
