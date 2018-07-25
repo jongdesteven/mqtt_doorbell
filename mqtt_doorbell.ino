@@ -9,9 +9,9 @@ MQTT based doorbell, made by Steven
 #define RINGER      D0
 
 // Update these with values suitable for your network.
-const char* ssid = "De Jong Airport";
-const char* password = "Appeltaart";
-const char* mqtt_server = "raspi";
+const char* ssid = "SSID";
+const char* password = "PASSOWORD";
+const char* mqtt_server = "MQTT-SERVER-IP";
 const char* mqtt_button_pub = "home/doorbell/button"; //on when pressed
 const char* mqtt_ring_ring_sub = "home/doorbell/ringer/ring"; //to ring the bell remote
 const char* mqtt_ring_sub = "home/doorbell/ringer/set"; // to enable/disable the ringer
