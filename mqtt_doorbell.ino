@@ -9,9 +9,9 @@ MQTT based doorbell, made by Steven
 #define RINGER      D0
 
 // Update these with values suitable for your network.
-const char* ssid = "SSID";
-const char* password = "PASSOWORD";
-const char* mqtt_server = "MQTT-SERVER-IP";
+const char* ssid = "!ssid";
+const char* password = "!password";
+const char* mqtt_server = "raspi";
 const char* mqtt_button_pub = "home/doorbell/button"; //on when pressed
 const char* mqtt_ring_ring_sub = "home/doorbell/ringer/ring"; //to ring the bell remote
 const char* mqtt_ring_sub = "home/doorbell/ringer/set"; // to enable/disable the ringer
@@ -68,6 +68,7 @@ void callback(char* topic, byte* payload, unsigned int length)
   // /ringer/set
   if(strcmp(topic, mqtt_ring_sub) == 0) {
     mqttTopic = mqtt_ring_pub;
+    Serial.println((char*)payload);
     if(strcmp((char*)payload, "0") == 0) {
       Serial.println("Ringer set to Off");
       ringerOn = 0;
@@ -102,7 +103,11 @@ void callback(char* topic, byte* payload, unsigned int length)
     //tpc = tpc + mqtt_ring_ring_pub;
     ringthebell( true );
   }
-  
+
+  //clear payload
+  memset(payload, 0, sizeof(payload));
+
+  //send the feedback
   char sendmessage[50];
   char sendmqttTopic[50];
   message.toCharArray(sendmessage,50);
@@ -162,8 +167,8 @@ void ringthebell(boolean startRinging) {
     // time has passed, stop ringing
     if (digitalRead(RINGER) == HIGH) {
       digitalWrite(RINGER, LOW);
-      sendMQTTMessage( mqtt_button_pub, "OFF" );
     }
+    sendMQTTMessage( mqtt_button_pub, "OFF" ); // always send the message
   }
 }
 
