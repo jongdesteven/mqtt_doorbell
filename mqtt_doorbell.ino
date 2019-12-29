@@ -1,17 +1,24 @@
 /*
 MQTT based doorbell, made by Steven
 */
+#include <ssidinfo.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+// OTA includes
+//#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // Define NodeMCU D3 pin to as temperature data pin of  DHT11
-#define DOORBUTTON  D3
-#define RINGER      D0
+#define DOORBUTTON  0 //D3
+#define RINGER      16 //D0
 
 // Update these with values suitable for your network.
-const char* ssid = "!ssid";
-const char* password = "!password";
-const char* mqtt_server = "raspi";
+const char* ssid = SSID_NAME;
+const char* password = SSID_PASS;
+const char* mqtt_server = "tinysrv";
+const char* wifi_hostname = "mqtt_doorbell";
 const char* mqtt_button_pub = "home/doorbell/button"; //on when pressed
 const char* mqtt_ring_ring_sub = "home/doorbell/ringer/ring"; //to ring the bell remote
 const char* mqtt_ring_sub = "home/doorbell/ringer/set"; // to enable/disable the ringer
@@ -45,6 +52,7 @@ void setup_wifi() {
     Serial.print("Connecting to ");
     Serial.println(ssid);
     WiFi.mode(WIFI_STA);  //station only, no accesspoint
+    WiFi.hostname(wifi_hostname);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) 
     {
@@ -56,6 +64,36 @@ void setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+
+// Arduino OTA Start
+  // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+   ArduinoOTA.setHostname("doorbell_esp8266");
+
+  // No authentication by default
+  // ArduinoOTA.setPassword((const char *)"123");
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  
 }
 
 void callback(char* topic, byte* payload, unsigned int length) 
@@ -167,8 +205,8 @@ void ringthebell(boolean startRinging) {
     // time has passed, stop ringing
     if (digitalRead(RINGER) == HIGH) {
       digitalWrite(RINGER, LOW);
+      sendMQTTMessage( mqtt_button_pub, "OFF" );
     }
-    sendMQTTMessage( mqtt_button_pub, "OFF" ); // always send the message
   }
 }
 
@@ -218,6 +256,7 @@ void loop() {
     }
   }
   client.loop();
+  ArduinoOTA.handle();
 
 if ( checkButtonPressed() ){
   ringthebell( true );
